@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* CSSの内容をここに追加 */
+
+        /* カレンダー全体のスタイル */
+        .calendar {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* 日付セルのスタイル */
+        .calendar .day {
+            width: 14.28%;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        /* 別の月の日付セルのスタイル */
+        .calendar .day.other-month {
+            color: #999;
+        }
+
+        /* 今日の日付セルのスタイル */
+        .calendar .day.current-day {
+            background-color: #eee;
+        }
+
+        /* 選択された日付セルのスタイル */
+        .calendar .day.selected-cell {
+            background-color: #4CAF50;
+            color: #fff;
+        }
+
+        /* ボタンコンテナのスタイル */
+        .btn-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* ボタンのスタイル */
+        .btn-container button {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+
+        /* ToDoリストのスタイル */
+        .todo-list {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+
+        /* ToDoリストの見出しのスタイル */
+        .todo-list h3 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        /* ToDoリストの項目のスタイル */
+        .todo-list p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        /* 予定入力欄と持ち物入力欄のスタイル */
+        .plan-input label,
+        .items-input label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .plan-input input,
+        .items-input input {
+            width: 100%;
+            padding: 5px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+        }
+
+        /* ToDoリストの項目リストの上部のスタイル */
+        #todoList {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+    <title>カレンダーアプリ</title>
+</head>
+
+<body>
+    <!-- カレンダーアプリの表示部分 -->
+    <div class="calendar-container">
+        <div class="btn-container">
+            <button id="prevBtn">&lt; 前の月</button>
+            <button id="nextBtn">次の月 &gt;</button>
+        </div>
+        <div class="calendar"></div>
+    </div>
+
+    <!-- 予定入力欄とToDoリスト -->
+    <div class="todo-container">
+        <div class="plan-input">
+            <h3>予定</h3>
+            <label for="planInput">予定を入力してください:</label>
+            <input type="text" id="planInput">
+            <button id="addPlanBtn">追加</button>
+        </div>
+        <div class="items-input">
+            <h3>持ち物</h3>
+            <label for="itemsInput">持ち物を入力してください:</label>
+            <input type="text" id="itemsInput">
+            <button id="addItemsBtn">追加</button>
+        </div>
+        <div class="todo-list">
+            <h3>ToDoリスト</h3>
+            <ul id="todoList"></ul>
+        </div>
+    </div>
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!-- JavaScript -->
+    <script>
+        // JavaScriptのコードをここに追加
+
+        $(document).ready(function () {
+            // カレンダーの表示と初期化
+            function renderCalendar(date) {
+                $(".calendar").empty();
+
+                // 選択された日付を表示
+                $(".selected-cell").removeClass("selected-cell");
+                $(".day[data-date='" + formatDate(date) + "']").addClass("selected-cell");
+
+                // カレンダーのタイトルに年と月を表示
+                const monthNames = [
+                    "1月", "2月", "3月", "4月", "5月", "6月",
+                    "7月", "8月", "9月", "10月", "11月", "12月"
+                ];
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                $(".calendar-container h2").text(year + "年 " + monthNames[month]);
+
+                // 月の最初の日を取得
+                const firstDay = new Date(year, month, 1);
+
+                // 月の最初の日まで前月の日付を表示
+                for (let i = firstDay.getDay(); i > 0; i--) {
+                    const day = new Date(year, month, -i + 1);
+                    createDayElement(day, true);
+                }
+
+                // 月の日付を表示
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                for (let i = 1; i <= lastDay; i++) {
+                    const day = new Date(year, month, i);
+                    createDayElement(day);
+                }
+
+                // 月の最後の日まで次月の日付を表示
+                const lastDayOfWeek = new Date(year, month, lastDay).getDay();
+                for (let i = 1; i < 7 - lastDayOfWeek; i++) {
+                    const day = new Date(year, month, lastDay + i);
+                    createDayElement(day, true);
+                }
+            }
+
+            // 日付をフォーマットする関数
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                return year + "-" + month.toString().padStart(2, "0") + "-" + day.toString().padStart(2, "0");
+            }
+
+            // 日付の要素を作成する関数
+            function createDayElement(date, isOtherMonth = false) {
+                const day = date.getDate();
+                const classNames = ["day"];
+                if (isOtherMonth) {
+                    classNames.push("other-month");
+                }
+                if (isToday(date)) {
+                    classNames.push("current-day");
+                }
+
+                const dayElement = $("<div>")
+                    .addClass(classNames.join(" "))
+                    .attr("data-date", formatDate(date))
+                    .text(day)
+                    .appendTo(".calendar");
+
+                dayElement.click(function () {
+                    $(".selected-cell").removeClass("selected-cell");
+                    $(this).addClass("selected-cell");
+                    const selectedDate = new Date($(this).attr("data-date"));
+                    showSchedule(selectedDate);
+                });
+            }
+
+            // 今日の日付かどうかを判定する関数
+            function isToday(date) {
+                const today = new Date();
+                return (
+                    date.getFullYear() === today.getFullYear() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getDate() === today.getDate()
+                );
+            }
+
+            // スケジュールを表示する関数
+            function showSchedule(date) {
+                const formattedDate = formatDate(date);
+                const schedule = localStorage.getItem(formattedDate);
+                const todoList = localStorage.getItem(formattedDate + "_todo");
+
+                $("#planInput").val(schedule || "");
+                $("#todoList").empty();
+
+                if (todoList) {
+                    const todos = JSON.parse(todoList);
+                    todos.forEach(function (todo) {
+                        $("<li>").text(todo).appendTo("#todoList");
+                    });
+                }
+            }
+
+            // 予定を追加するボタンのクリックイベント
+            $("#addPlanBtn").click(function () {
+                const selectedDate = $(".selected-cell").attr("data-date");
+                const plan = $("#planInput").val();
+                localStorage.setItem(selectedDate, plan);
+                showSchedule(new Date(selectedDate));
+            });
+
+            // 持ち物を追加するボタンのクリックイベント
+            $("#addItemsBtn").click(function () {
+                const selectedDate = $(".selected-cell").attr("data-date");
+                const itemsInput = $("#itemsInput");
+                const item = itemsInput.val();
+
+                const todoList = localStorage.getItem(selectedDate + "_todo");
+                let todos = [];
+                if (todoList) {
+                    todos = JSON.parse(todoList);
+                }
+                todos.push(item);
+                localStorage.setItem(selectedDate + "_todo", JSON.stringify(todos));
+
+                $("<li>").text(item).appendTo("#todoList");
+                itemsInput.val("");
+            });
+
+            // 前の月ボタンのクリックイベント
+            $("#prevBtn").click(function () {
+                const currentMonth = $(".calendar-container h2").text();
+                const date = new Date(currentMonth);
+                date.setMonth(date.getMonth() - 1);
+                renderCalendar(date);
+            });
+
+            // 次の月ボタンのクリックイベント
+            $("#nextBtn").click(function () {
+                const currentMonth = $(".calendar-container h2").text();
+                const date = new Date(currentMonth);
+                date.setMonth(date.getMonth() + 1);
+                renderCalendar(date);
+            });
+
+            // 初期表示
+            const today = new Date();
+            renderCalendar(today);
+            showSchedule(today);
+        });
+    </script>
+</body>
+
+</html>
+
